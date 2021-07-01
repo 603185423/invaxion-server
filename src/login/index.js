@@ -1,73 +1,46 @@
 const log4js = require('log4js');
 const logger = log4js.getLogger('app:login:handler');
-const sqlite3 = require("sqlite3").verbose();
 const crypto = require('crypto');
 const {mainCmd, paraCmd} = require('../utils/cmd');
+const Sequelize = require('../sql/mysqlConfig');
+const models = require('../sql/models/init-models')(Sequelize);
 
 const handlers = new Map();
-const dbname = "db.db"
 
-// handlers.set(paraCmd.cometLogin.Req_FindPassword, (req, res) => {
-//     logger.debug('Req_FindPassword');
-//     res.write({
-//         mainCmd: mainCmd.Login,
-//         paraCmd: paraCmd.cometLogin.Ret_FindPassword,
-//         data: {
-//             data: {
-//                 gateIP: '127.0.0.1',
-//                 gatePort: 20021,
-//                 token: '5dec0ad9c11af4860d551dfd44aef446',
-//                 accId: 25882
-//             }
-//         }
-//     });
-// });
 
-handlers.set(paraCmd.cometLogin.Req_ThirdLogin, (req, res) => {
+handlers.set(paraCmd.cometLogin.Req_ThirdLogin, async (req, res) => {
     logger.debug('ThirdLogin');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
+
+    let gateList = await models.gate.findAndCountAll({where: {enable: 1}});
+    let gateIP = '127.0.0.1';
+    let gatePort = 20021;
+    if (gateList.count !== 0) {
+        gateIP = gateList.rows[0].gateIP;
+        gatePort = gateList.rows[0].gatePort
+    }
+
     let openId = req.data["openId"];
     let token = crypto.createHash('md5').update(openId + "6031").digest("hex");
-    let accId = 0;
-    let fun = async () => {
-        return new Promise(resolve => {
-            db.get("select accId from acc_data where steamId = $openId", {$openId: openId}, function (err, accid) {
-                if (err) throw err;
-                if (accid === undefined) {
-                    db.serialize(function () {
-                        db.run("insert into acc_data(steamId, token) values($steamId, $token)", {
-                            $steamId: openId,
-                            $token: token
-                        }, function (err) {
-                            if (err) throw err;
-                        });
-                        db.get("select accId from acc_data where steamId = $openId", {$openId: openId}, function (err, accid) {
-                            if (err) throw err;
-                            resolve(accid["accId"]);
-                        });
-                    });
-                } else resolve(accid["accId"]);
-            });
-        });
+    let [user, created] = await models.account.findOrCreate({
+        where: {steamId: openId}
+    });
+    if (user.token !== token) {
+        models.account.update({token: token}, {where: {steamId: openId}});
     }
-    (async () => {
-        accId = await fun();
-        db.close();
-        res.write({
-            mainCmd: mainCmd.Login,
-            paraCmd: paraCmd.cometLogin.Ret_ThirdLogin,
+
+    res.write({
+        mainCmd: mainCmd.Login,
+        paraCmd: paraCmd.cometLogin.Ret_ThirdLogin,
+        data: {
             data: {
-                data: {
-                    gateIP: '127.0.0.1',
-                    gatePort: 20021,
-                    token: token,
-                    accId: accId
-                }
+                gateIP: gateIP,
+                gatePort: gatePort,
+                token: token,
+                accId: user.accId
             }
-        });
-    })()
+        }
+    });
+
 });
 
 handlers.set(paraCmd.cometLogin.Req_GameVersion, (req, res) => {

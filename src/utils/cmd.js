@@ -234,10 +234,10 @@ class GameCmd {
     };
 
     _link = {
-        'Time': 'cometLogin',
-        'Login': 'cometScene',
+        'Time': 'cometGate',
+        'Login': 'cometLogin',
         'Select': 'cometGate',
-        'Game': 'cometGate',
+        'Game': 'cometScene',
     };
 
     _cmdCache = {};

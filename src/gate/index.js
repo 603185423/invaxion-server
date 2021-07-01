@@ -3,6 +3,14 @@ const Ntf_CharacterFullData = require('./tmp-data/Ntf_CharacterFullData.js');
 const Ret_ShopInfo = require('./tmp-data/Ret_ShopInfo.js');
 const Ret_Event_Info = require('./tmp-data/Ret_Event_Info.js');
 const sqlite3 = require("sqlite3").verbose();
+const Sequelize = require('../sql/mysqlConfig');
+const models = require('../sql/models/init-models')(Sequelize);
+const initSongModels = require('../sql/initSongModels');
+const {Op} = require("sequelize");
+
+function songModels(songId) {
+    return initSongModels(Sequelize, songId);
+}
 
 const logger = log4js.getLogger('app:gate:handler');
 
@@ -10,32 +18,27 @@ const handlers = new Map();
 const dbname = "db.db"
 const rankListLength = 100;
 
-function pad(num, n = 9) {
-    let len = num.toString().length;
-    while (len < n) {
-        num = "0" + num;
-        len++;
-    }
-    return num;
+const modeLink = {1: '4k', 2: '6k', 3: '8k',}
+const difficultyLink = {1: 'ez', 2: 'nm', 3: 'hd',}
+
+function getSuf(mode, difficulty) {
+    return '_' + modeLink[mode] + difficultyLink[difficulty]
+};
+
+function addSuf(suf, ...strs) {
+    let res = [];
+    strs.forEach(function (v) {
+        res.push([v + suf, v]);
+    });
+    return res;
 }
 
 handlers.set(1003, (req, res) => {  //gate
     logger.info('上报游戏时间');
 });
 
-handlers.set(1005, (req, res, now, sessionid) => {  //gate
+handlers.set(1005, async (req, res, now, sessionid) => {  //gate
     logger.info('登陆入口检测');
-    let accId = req.data["accId"];
-    let token = req.data["token"];
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    db.run("UPDATE acc_data SET sessionid = $sessionid WHERE accId = $accId;", {
-        $sessionid: sessionid,
-        $accId: accId
-    }, function (err) {
-        if (err) throw err;
-    });
     res.write({
         mainCmd: 1,
         paraCmd: 1,
@@ -43,19 +46,19 @@ handlers.set(1005, (req, res, now, sessionid) => {  //gate
             gametime: parseInt((new Date().getTime() / 1000).toString())
         }
     });
-    db.get("select * from acc_data where accId = $accId;", {$accId: accId}, function (err, data) {
-        if (err) throw err;
-        if (data !== undefined && data["token"] === token) {
-            let userlist = [{charId: data["charId"], accStates: 0}];
-            if (data["charId"] === "0000000000") userlist = [];
-            res.write({
-                mainCmd: 3,
-                paraCmd: 6,
-                data: {
-                    userList: userlist
-                }
-            });
-            db.close();
+    let accId = req.data["accId"];
+    let token = req.data["token"];
+    let acc = await models.account.findOne({where: {accId: accId}});
+    if (acc === null || acc.token !== token) return;
+    models.character.update({sessionid: sessionid}, {where: {accId: accId}});
+    let [chara, created] = await models.character.findOrCreate({where: {accId: accId}});
+    let userList = [{charId: chara.charId, accStates: 0}];
+    if (chara.charId === "0000000000") userList = [];
+    res.write({
+        mainCmd: 3,
+        paraCmd: 6,
+        data: {
+            userList: userList
         }
     });
 
@@ -63,57 +66,30 @@ handlers.set(1005, (req, res, now, sessionid) => {  //gate
 
 handlers.set(1007, async (req, res, now, sessionid) => {  //gate
     logger.info('新建角色的进入游戏');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
+    await models.character.update({
+        name: req.data["name"],
+        selectCharId: req.data["selectCharId"],
+        language: req.data["language"],
+        country: req.data["country"],
+        headId: req.data["selectCharId"]
+    }, {where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({where: {sessionid: sessionid}});
+    let charId = Math.round(chara.accId + 4000000000).toString()
+    res.write({
+        mainCmd: 5,
+        paraCmd: 1,
+        data: await Ntf_CharacterFullData(chara.accId, charId, chara.name, chara.headId, chara.selectCharId, chara.selectThemeId)
     });
-    db.run("UPDATE acc_data SET name = $name, selectCharId = $selectCharId, language = $language, headId = $headId, country = $country WHERE sessionid = $sessionid;",
-        {
-            $name: req.data["name"],
-            $selectCharId: req.data["selectCharId"],
-            $language: req.data["language"],
-            $country: req.data["country"],
-            $sessionid: sessionid,
-            $headId: req.data["selectCharId"]
-        }, function (err) {
-            if (err) throw err;
-            db.get("select * from acc_data where sessionid = $sessionid;", {$sessionid: sessionid}, async function (err, data) {
-                if (err) throw err;
-                let charId = Math.round(data["accId"] + 4000000000).toString()
-                res.write({
-                    mainCmd: 5,
-                    paraCmd: 1,
-                    data: await Ntf_CharacterFullData(data["accId"], charId, data["name"], data["headId"], data["selectCharId"], data["selectThemeId"])
-                });
-                db.run("UPDATE acc_data SET charId = $charId WHERE sessionid = $sessionid;", {
-                    $charId: charId,
-                    $sessionid: sessionid
-                }, function (err) {
-                    if (err) throw err;
-                });
-                db.get("select charId from char_data where charId = $charId;", {$charId : charId}, function (err,data) {
-                    if (err) throw err;
-                    if(data !== undefined)return;
-                    db.run("INSERT INTO char_data(charId) VALUES($charId)", {$charId : charId}, function (err) {
-                        if (err) throw err;
-                    });
-                });
-            });
-        });
-
+    models.character.update({charId: charId}, {where: {sessionid: sessionid}})
 });
 
 handlers.set(1008, async (req, res, now, sessionid) => { //gate
     logger.info('进入游戏');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    db.get("select * from acc_data where sessionid = $sessionid;", {$sessionid: sessionid}, async function (err, data) {
-        if (err) throw err;
-        res.write({
-            mainCmd: 5,
-            paraCmd: 1,
-            data: await Ntf_CharacterFullData(data["accId"], data["charId"], data["name"], data["headId"], data["selectCharId"], data["selectThemeId"])
-        });
+    let chara = await models.character.findOne({where: {sessionid: sessionid}})
+    res.write({
+        mainCmd: 5,
+        paraCmd: 1,
+        data: await Ntf_CharacterFullData(chara.accId, chara.charId, chara.name, chara.headId, chara.selectCharId, chara.selectThemeId)
     });
 });
 
@@ -121,185 +97,144 @@ handlers.set(2, (req, res) => {
     logger.info('开始打歌');
 });
 
-handlers.set(4, (req, res, now, sessionid) => {
+handlers.set(4, async (req, res, now, sessionid) => {
     logger.info('完成打歌');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
     let songInfo = req.data["data"];
-    let totalScore = songInfo["totalScore"], total4KScore = songInfo["total4KScore"], total6KScore = songInfo["total6KScore"], total8KScore = songInfo["total8KScore"];
-    db.run("UPDATE acc_data SET totalScore = $totalScore, total4KScore = $total4KScore, total6KScore = $total6KScore, total8KScore = $total8KScore WHERE sessionid = $sessionid;", {
-        $totalScore: totalScore,
-        $total4KScore: total4KScore,
-        $total6KScore: total6KScore,
-        $total8KScore: total8KScore,
-        $sessionid: sessionid
-    }, function (err) {
-        if (err) throw err;
-    });
+    let totalScore = songInfo["totalScore"], total4KScore = songInfo["total4KScore"],
+        total6KScore = songInfo["total6KScore"], total8KScore = songInfo["total8KScore"];
+    models.character.update({
+        totalScore: totalScore,
+        total4KScore: total4KScore,
+        total6KScore: total6KScore,
+        total8KScore: total8KScore,
+        sessionid: sessionid
+    }, {where: {sessionid: sessionid}})
     let songId = songInfo["songId"];
     let difficulty = songInfo["difficulty"];
     let mode = songInfo["mode"];
     songInfo = songInfo["playData"];
     songInfo = {
-        songId : songId,
-        finishLevel : songInfo["finishLevel"],
-        score : songInfo["score"],
-        isFullCombo : songInfo["isFullCombo"],
-        miss : songInfo["miss"],
-        isAllMax : songInfo["isAllMax"],
-        time : Date.now()
+        songId: songId,
+        finishLevel: songInfo["finishLevel"],
+        score: songInfo["score"],
+        combo: songInfo["combo"],
+        isFullCombo: songInfo["isFullCombo"],
+        maxPercent: songInfo["maxPercent"],
+        miss: songInfo["miss"],
+        just: songInfo["just"],
+        life: songInfo["life"],
+        accuracy: songInfo["accuracy"],
+        isAllMax: songInfo["isAllMax"],
+        time: Date.now()
     };
 
-    db.get("select * from acc_data where sessionid = $sessionid;", {$sessionid: sessionid}, function (err, data) {
-        if (err) throw err;
-        let charId = data["charId"];
-        db.run("alter table char_data add COLUMN s" + songId + " VARCHAR(1024);", function (err) {
-            if (err);//忽略重复添加的错误
-            db.get("select s" + songId + " from char_data where charId = '" + charId + "';", function (err, data) {
-                if (err) throw err;
-                let songInfoAll = {};
-                let songInfoOld;
-                let newRank = 0;
-                let playCount = 0;
-                if (data["s" + songId] === null) {songInfoOld = songInfo;newRank = 1;}
-                else songInfoAll = JSON.parse(data["s" + songId]);
-                if (songInfoAll.hasOwnProperty(mode)!==true)songInfoAll[mode] = {};
-                if (songInfoAll[mode].hasOwnProperty(difficulty)===true){songInfoOld = songInfoAll[mode][difficulty];playCount = songInfoOld["playCount"];}
-                else {songInfoOld = songInfo;newRank = 1;}
-                if (songInfo["score"]>songInfoOld["score"])newRank = 1;
-                else if (songInfo["score"]<songInfoOld["score"])songInfo = songInfoOld;
-                songInfo["playCount"] = playCount + 1;
-                let songInfo_send = JSON.parse(JSON.stringify(songInfo));  //deep copy
-                delete songInfo_send.time;
-                res.write({
-                    mainCmd: 5,
-                    paraCmd: 5,
-                    data: {
-                        songInfo : songInfo,
-                        settleData: {
-                            changeList: [
-                                {
-                                    type: 9,
-                                    count: 450,
-                                    id: 0
-                                }
-                            ],
-                            expData: {
-                                level: 30,
-                                curExp: 0,
-                                maxExp: 0
-                            }
-                        },
-                        newRank: 0
-                    }
-                });
-                songInfoAll[mode][difficulty] = songInfo;
-                db.run("UPDATE char_data SET s" + songId + " = '" + JSON.stringify(songInfoAll) + "' WHERE charId = '" + charId + "';", function (err) {
-                    if (err) throw err;
-                });
-            });
-        });
-    });
-});
-
-handlers.set(6, (req, res) => {
-    logger.info('单一歌曲排行榜');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    let flag_weekly = false;
-    if (req.data.hasOwnProperty("isWeek")) flag_weekly = true;
-    db.all("select charId, name, country, headId from acc_data",function (err,data){
-        if (err) throw err;
-        let charList = {};
-        for (let i = 0; i < data.length; i++){
-            charList[data[i]["charId"]] = {name : data[i]["name"], country : data[i]["country"], headId : data[i]["headId"]};
+    let chara = await models.character.findOne({attributes: ['charId'], where: {sessionid: sessionid}});
+    let charId = chara.charId;
+    let suf = getSuf(mode, difficulty);
+    let att = addSuf(suf, "finishLevel", "score", "combo", "isFullCombo", "maxPercent", "miss", "just", "life", "accuracy", "isAllMax", "time", "playCount");
+    att.push('songId');
+    await songModels(songId).sync();
+    let [songInfoOld,] = await songModels(songId).findOrCreate({attributes: att, where: {charId: charId}});
+    let upd = {};
+    if (songInfoOld.score > songInfo.score) {
+        songInfo = songInfoOld.dataValues;
+        upd['playCount' + suf] = ++songInfo.playCount;
+    } else {
+        songInfo["playCount"] = ++songInfoOld.dataValues.playCount;
+        for (let key in songInfo) {
+            if (key === 'songId') upd[key] = songInfo[key];
+            else upd[key + suf] = songInfo[key];
         }
-        let deltaTime = Date.now() - 7*24*60*60*1000;
-        db.all("select charId, s" + req.data["songId"].toString() + " from char_data where s" + req.data["songId"].toString() + " not null",function (err,data){
-            if (err) {  //无打歌记录 忽略
-                res.write({
-                    mainCmd: 5,
-                    paraCmd: 7,
-                    data: {
-                        list : [
-                            {
-                                rank: 1,
-                                charName: "此歌暂时无人游玩",
-                                score: 1,
-                                headId: 10010,
-                                charId: "000000000",
-                                country: 1,
-                                teamName: "",
-                                titleId: 10001
-                            },
-                            {
-                                rank: 2,
-                                charName: "快来争当排行榜第一！",
-                                score: 2,
-                                headId: 10010,
-                                charId: "000000000",
-                                country: 1,
-                                teamName: "",
-                                titleId: 10001
-                            }
-                        ]
-                    }
-                });
-                return;
-            }
-            let scoreList = [];
-            let mode = req.data["mode"].toString();
-            let difficulty = req.data["difficulty"].toString();
-            for (let i = 0; i < data.length; i++){
-                let charID = data[i]["charId"];
-                let score = JSON.parse(data[i]["s" + req.data["songId"].toString()]);
-                if (!score.hasOwnProperty(mode)) continue;
-                if (!score[mode].hasOwnProperty(difficulty)) continue;
-                if (flag_weekly && score[mode][difficulty]["time"] < deltaTime) continue;
-                scoreList.push({
-                    charId : data[i]["charId"],
-                    score : score[mode][difficulty]["score"],
-                    time : score[mode][difficulty]["time"]
-                });
-            }
-            scoreList.sort(function (a,b){return (b["score"] === a["score"]) ? a["time"] - b["time"] : b["score"] - a["score"]});
-            let rankList = [];
-            for (let i = 0; i < scoreList.length; i++){
-                if (i > rankListLength)break;
-                let name = " ";
-                let country = 2;
-                let headId = 10010;
-                if (charList.hasOwnProperty(scoreList[i]["charId"])) {
-                    name = charList[scoreList[i]["charId"]]["name"];
-                    country = charList[scoreList[i]["charId"]]["country"];
-                    headId = charList[scoreList[i]["charId"]]["headId"];
-                }
-                rankList.push({
-                    rank : i + 1,
-                    charName : name,
-                    score : scoreList[i]["score"],
-                    headId : headId,
-                    charId : scoreList[i]["charId"],
-                    country : country,
-                    teamName : "",
-                    titleId : 10001
-                });
-            }
-            res.write({
-                mainCmd: 5,
-                paraCmd: 7,
-                data: {
-                    list : rankList
-                }
-            });
-        });
+    }
+    songModels(songId).update(upd, {where: {charId: charId}});
+    songInfo.playCount++;
+    songInfo = {
+        songId: songInfo["songId"],
+        finishLevel: songInfo["finishLevel"],
+        score: songInfo["score"],
+        isFullCombo: songInfo["isFullCombo"],
+        miss: songInfo["miss"],
+        playCount: songInfo["playCount"],
+        isAllMax: songInfo["isAllMax"],
+    }
+    res.write({
+        mainCmd: 5,
+        paraCmd: 5,
+        data: {
+            songInfo: songInfo,
+            settleData: {changeList: [{type: 9, count: 450, id: 0}], expData: {level: 30, curExp: 0, maxExp: 0}},
+            newRank: 0
+        }
     });
 
 });
 
-handlers.set(8, (req, res) => {
+handlers.set(6, async (req, res) => {
+    logger.info('单一歌曲排行榜');
+    let weekly = {};
+    const deltaTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    let suf = getSuf(req.data["mode"], req.data["difficulty"]);
+    if (req.data.hasOwnProperty("isWeek")) weekly['time' + suf] = {[Op.gt]: deltaTime};
+    await songModels(req.data["songId"]).sync();
+    let att = addSuf(suf, "score");
+    att.push('charId');
+    let rank = await songModels(req.data["songId"]).findAll({
+        attributes: att,
+        where: weekly,
+        include: [{
+            association: songModels(req.data["songId"]).belongsTo(models.character, {
+                foreignKey: 'charId',
+                targetKey: 'charId'
+            }),
+            attributes: [['name', 'charName'], 'headId', 'country', 'titleId']
+        }],
+        order: [['score' + suf, 'DESC']],
+        limit: rankListLength,
+        raw: false
+    })
+    let rankList = [];
+    rank.forEach(function (v, i) {
+        //if (!(v.hasOwnProperty("dataValues") && v.dataValues.character.hasOwnProperty("dataValues"))) return;
+        rankList.push({
+            rank: i + 1,
+            charName: v.dataValues.character.dataValues.charName,
+            score: v.dataValues.score,
+            headId: v.dataValues.character.dataValues.headId,
+            charId: v.dataValues.charId,
+            country: v.dataValues.character.dataValues.country,
+            titleId: v.dataValues.character.dataValues.titleId,
+        });
+    });
+    if (rankList.length === 0) rankList.push({
+        rank: 1,
+        charName: "此歌暂时无人游玩",
+        score: 1,
+        headId: 10010,
+        charId: "000000000",
+        country: 1,
+        teamName: "",
+        titleId: 10001
+    }, {
+        rank: 2,
+        charName: "快来争当排行榜第一！",
+        score: 2,
+        headId: 10010,
+        charId: "000000000",
+        country: 1,
+        teamName: "",
+        titleId: 10001
+    });
+    res.write({
+        mainCmd: 5,
+        paraCmd: 7,
+        data: {
+            list: rankList
+        }
+    });
+
+});
+
+handlers.set(8, async (req, res) => {
     logger.info('排行榜');
     let db = new sqlite3.Database(dbname, function (err) {
         if (err) throw err;
@@ -311,53 +246,48 @@ handlers.set(8, (req, res) => {
     else if (rankType === 6) sqlReqStr = "total6KScore";
     else if (rankType === 7) sqlReqStr = "total8KScore";
     else return;
-    db.all("select charId, name, country, headId, " + sqlReqStr + " from acc_data",function (err,data){
-        if (err) throw err;
-        let scoreList = [];
-        for(let i = 0; i < data.length; i++){
-            if (data[i][sqlReqStr] === 0) continue;
-            scoreList.push({
-                charName : data[i]["name"],
-                headId : data[i]["headId"],
-                score : data[i][sqlReqStr],
-                country : data[i]["country"],
-                teamName: "",
-                titleId : 10001
-            })
-        }
-        scoreList.sort(function (a,b){return b["score"] - a["score"]});
-        let sendScoreList=[];
-        for(let i = 0; i < scoreList.length && i < rankListLength; i++){
-            scoreList[i]["rank"] = i + 1;
-            sendScoreList.push(scoreList[i]);
-        }
-        if (scoreList.length === 0) sendScoreList.push({
-                rank: 1,
-                charName: "暂时无人游玩",
-                score: 1,
-                headId: 10010,
-                country: 1,
-                teamName: "",
-                titleId: 10001
-            },
-            {
-                rank: 2,
-                charName: "快来争当第一",
-                score: 2,
-                headId: 10010,
-                charId: "000000000",
-                country: 1,
-                teamName: "",
-                titleId: 10001
-            });
-        res.write({
-            mainCmd: 5,
-            paraCmd: 9,
-            data: {
-                list : sendScoreList,
-                type : rankType,
-            }
+    let scores = await models.character.findAll({
+        attributes: [['name','charName'], 'headId', [sqlReqStr, 'score'], 'country', 'titleId'],
+        order: [[sqlReqStr, 'DESC']],
+        limit: rankListLength
+    })
+    let scoreList = [];
+    scores.forEach(function (v, i) {
+        scoreList.push({
+            rank: i + 1,
+            charName: v.dataValues.charName,
+            score: v.dataValues.score,
+            headId: v.dataValues.headId,
+            country: v.dataValues.country,
+            titleId: v.dataValues.titleId,
         });
+    });
+    if (scoreList.length === 0)scoreList.push({
+            rank: 1,
+            charName: "暂时无人游玩",
+            score: 1,
+            headId: 10010,
+            country: 1,
+            teamName: "",
+            titleId: 10001
+        },
+        {
+            rank: 2,
+            charName: "快来争当第一",
+            score: 2,
+            headId: 10010,
+            charId: "000000000",
+            country: 1,
+            teamName: "",
+            titleId: 10001
+        });
+    res.write({
+        mainCmd: 5,
+        paraCmd: 9,
+        data: {
+            list: scoreList,
+            type: rankType,
+        }
     });
 });
 
@@ -366,17 +296,9 @@ handlers.set(30, (req, res, now, sessionid) => {
     res.write({
         mainCmd: 5,
         paraCmd: 31,
-        data: {id : req.data["id"]}
+        data: {id: req.data["id"]}
     });
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    db.run("UPDATE acc_data SET headId = $headId WHERE sessionid = $sessionid;", {
-        $headId: req.data["id"],
-        $sessionid: sessionid
-    }, function (err) {
-        if (err) throw err;
-    });
+    models.character.update({headId: req.data["id"]},{where: {sessionid: sessionid}});
 });
 
 handlers.set(32, (req, res, now, sessionid) => {
@@ -384,17 +306,9 @@ handlers.set(32, (req, res, now, sessionid) => {
     res.write({
         mainCmd: 5,
         paraCmd: 33,
-        data: {id : req.data["id"]}
+        data: {id: req.data["id"]}
     });
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    db.run("UPDATE acc_data SET selectCharId = $selectCharId WHERE sessionid = $sessionid;", {
-        $selectCharId: req.data["id"],
-        $sessionid: sessionid
-    }, function (err) {
-        if (err) throw err;
-    });
+    models.character.update({selectCharId: req.data["id"]},{where: {sessionid: sessionid}});
 });
 
 handlers.set(34, (req, res, now, sessionid) => {
@@ -402,17 +316,9 @@ handlers.set(34, (req, res, now, sessionid) => {
     res.write({
         mainCmd: 5,
         paraCmd: 35,
-        data: {id : req.data["id"]}
+        data: {id: req.data["id"]}
     });
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
-    db.run("UPDATE acc_data SET selectThemeId = $selectThemeId WHERE sessionid = $sessionid;", {
-        $selectThemeId: req.data["id"],
-        $sessionid: sessionid
-    }, function (err) {
-        if (err) throw err;
-    });
+    models.character.update({selectThemeId: req.data["id"]},{where: {sessionid: sessionid}});
 });
 
 handlers.set(36, (req, res) => {
@@ -439,7 +345,7 @@ handlers.set(73, (req, res) => {
         mainCmd: 5,
         paraCmd: 74,
         data: {
-            contentList : req.data["contentList"]
+            contentList: req.data["contentList"]
         }
     });
 });

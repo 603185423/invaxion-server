@@ -1,0 +1,1 @@
+sequelize-auto -h localhost -d invaxiondb -u root -x rte123456 -p 3306 -o ../src/sql/models
