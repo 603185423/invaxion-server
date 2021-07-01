@@ -335,6 +335,30 @@ module.exports = async function (accId = 1, charId = 1, charName = "6031", headI
                         "level": 1,
                         "exp": 0,
                         "playCount": 0
+                    },
+                    {
+                        "charId":1006010,
+                        "level":1,
+                        "exp":0,
+                        "playCount":0
+                    },
+                    {
+                        "charId":50050,
+                        "level":1,
+                        "exp":0,
+                        "playCount":0
+                    },
+                    {
+                        "charId":3004010,
+                        "level":1,
+                        "exp":0,
+                        "playCount":0
+                    },
+                    {
+                        "charId":30060,
+                        "level":1,
+                        "exp":0,
+                        "playCount":0
                     }
                 ]
             },
