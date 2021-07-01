@@ -73,7 +73,7 @@ handlers.set(1007, async (req, res, now, sessionid) => {  //gate
         country: req.data["country"],
         headId: req.data["selectCharId"]
     }, {where: {sessionid: sessionid}});
-    let chara = await models.character.findOne({where: {sessionid: sessionid}});
+    let chara = await models.character.findOrCreate({where: {sessionid: sessionid}});
     let charId = Math.round(chara.accId + 4000000000).toString()
     res.write({
         mainCmd: 5,
