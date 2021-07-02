@@ -33,7 +33,7 @@ async function getScoreList(charId){
             include: inc[v],
             raw: false
         });
-        if (!scores[0].hasOwnProperty('dataValues')) return {"key4List": {},"key6List": {},"key8List": {}};
+        if (scores === null || scores[0] === null || (!scores[0].hasOwnProperty('dataValues')) ) return {"key4List": {},"key6List": {},"key8List": {}};
         for (let key in scores[0].dataValues){
             if (scores[0].dataValues[key] !== null){
                 scoreList[parseInt(key.slice(1))]=scores[0].dataValues[key].dataValues;

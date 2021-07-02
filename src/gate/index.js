@@ -50,8 +50,8 @@ handlers.set(1005, async (req, res, now, sessionid) => {  //gate
     let token = req.data["token"];
     let acc = await models.account.findOne({where: {accId: accId}});
     if (acc === null || acc.token !== token) return;
+    let [chara, created] = await models.character.findOrCreate( {where: {accId: accId}, defaults: {accId: accId}});
     models.character.update({sessionid: sessionid}, {where: {accId: accId}});
-    let [chara, created] = await models.character.findOrCreate({where: {accId: accId}});
     let userList = [{charId: chara.charId, accStates: 0}];
     if (chara.charId === "0000000000") userList = [];
     res.write({
@@ -73,14 +73,14 @@ handlers.set(1007, async (req, res, now, sessionid) => {  //gate
         country: req.data["country"],
         headId: req.data["selectCharId"]
     }, {where: {sessionid: sessionid}});
-    let chara = await models.character.findOrCreate({where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({where: {sessionid: sessionid}});
     let charId = Math.round(chara.accId + 4000000000).toString()
+    await models.character.update({charId: charId}, {where: {sessionid: sessionid}})
     res.write({
         mainCmd: 5,
         paraCmd: 1,
         data: await Ntf_CharacterFullData(chara.accId, charId, chara.name, chara.headId, chara.selectCharId, chara.selectThemeId)
     });
-    models.character.update({charId: charId}, {where: {sessionid: sessionid}})
 });
 
 handlers.set(1008, async (req, res, now, sessionid) => { //gate
