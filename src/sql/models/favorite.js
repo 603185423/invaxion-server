@@ -5,6 +5,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.CHAR(10),
       allowNull: false,
       primaryKey: true
+    },
+    s00000: {
+      type: DataTypes.STRING(10),
+      allowNull: true
     }
   }, {
     sequelize,

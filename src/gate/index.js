@@ -75,7 +75,7 @@ handlers.set(1007, async (req, res, now, sessionid) => {  //gate
     }, {where: {sessionid: sessionid}});
     let chara = await models.character.findOne({where: {sessionid: sessionid}});
     let charId = Math.round(chara.accId + 4000000000).toString()
-    await models.character.update({charId: charId}, {where: {sessionid: sessionid}})
+    await models.character.update({charId: charId}, {where: {sessionid: sessionid}});
     res.write({
         mainCmd: 5,
         paraCmd: 1,
@@ -246,8 +246,11 @@ handlers.set(8, async (req, res) => {
     else if (rankType === 6) sqlReqStr = "total6KScore";
     else if (rankType === 7) sqlReqStr = "total8KScore";
     else return;
+    let whe = {};
+    whe[sqlReqStr]={[Op.gt]: 0};
     let scores = await models.character.findAll({
         attributes: [['name','charName'], 'headId', [sqlReqStr, 'score'], 'country', 'titleId'],
+        where: whe,
         order: [[sqlReqStr, 'DESC']],
         limit: rankListLength
     })
