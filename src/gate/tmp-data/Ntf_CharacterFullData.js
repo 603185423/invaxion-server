@@ -65,6 +65,15 @@ async function getScoreList(charId){
     return res;
 }
 
+async function getFavoriteList(charId){
+    let ret = [];
+    let [fav, created] = await models.favorite.findOrCreate({where: {charId: charId}});
+    if (created) return ret;
+    for(let key in fav.dataValues){
+        if (fav[key])ret.push(key);
+    }
+    return ret;
+}
 
 module.exports = async function (accId = 1, charId = 1, charName = "6031", headId = 30040, curCharacterId = 30040, curThemeId = 1) {
     return {
@@ -147,7 +156,8 @@ module.exports = async function (accId = 1, charId = 1, charName = "6031", headI
                     {"songId" : 64003},
                     {"songId" : 62021},
                     {"songId" : 65036}
-                ]
+                ],
+                favoriteList: await getFavoriteList(charId)
             },
             "charList": {
                 "list": [

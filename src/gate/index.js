@@ -362,6 +362,23 @@ handlers.set(100, (req, res) => {
     });
 });
 
+handlers.set(10, async (req, res, sessionid) => {
+    logger.info('收藏歌曲');
+    res.write({
+        mainCmd: 5,
+        paraCmd: 11,
+        data: {
+            songId: req.data['songId'],
+            isFavorite: req.data['isFavorite']
+        }
+    });
+    let chara = await models.character.findOne({attributes: ['charId']},{where: {sessionid: sessionid}});
+    let charId = chara.charId;
+    let upd = {};
+    upd[req.data['songId']] = req.data['isFavorite'];
+    models.favorite.update(upd, {where: {charId: charId}});
+});
+
 async function dispatch(req, res, now, sessionid) {
     const handler = handlers.get((req.mainCmd === 1 || req.mainCmd === 3) ? req.paraCmd + 1000 : req.paraCmd);
     if (!handler)
