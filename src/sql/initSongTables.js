@@ -6,9 +6,9 @@ function songModels(songId) {
     return initSongModels(Sequelize, songId);
 }
 
-function initSongTables(){
-    songList.forEach(function (v){
-       songModels(v).sync();
-    });
+async function initSongTables(){
+    for (let i in songList){
+        await songModels(songList[i]).sync();
+    }
 }
 module.exports = initSongTables;

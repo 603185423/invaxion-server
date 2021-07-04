@@ -1,15 +1,24 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('character', {
+  return sequelize.define('acc_data', {
     accId: {
+      autoIncrement: true,
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       primaryKey: true
     },
     sessionid: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0
+    },
+    steamId: {
+      type: DataTypes.STRING(26),
+      allowNull: true
+    },
+    token: {
+      type: DataTypes.CHAR(32),
+      allowNull: true
     },
     charId: {
       type: DataTypes.CHAR(10),
@@ -18,8 +27,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     name: {
       type: DataTypes.STRING(50),
-      allowNull: true,
-      defaultValue: "我名字呢？"
+      allowNull: true
     },
     language: {
       type: DataTypes.INTEGER,
@@ -28,28 +36,20 @@ module.exports = function(sequelize, DataTypes) {
     },
     country: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 1
+      allowNull: true
     },
     selectCharId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 30040
+      allowNull: true
+    },
+    headId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     },
     selectThemeId: {
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 1
-    },
-    headId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 30040
-    },
-    titleId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 10001
     },
     totalScore: {
       type: DataTypes.INTEGER,
@@ -70,40 +70,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0
-    },
-    level: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 30
-    },
-    curExp: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 0
-    },
-    maxExp: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 0
-    },
-    totalArcadeScore: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 0
     }
   }, {
     sequelize,
-    tableName: 'character',
-    timestamps: false,
-    indexes: [
-      {
-        name: "PRIMARY",
-        unique: true,
-        using: "BTREE",
-        fields: [
-          { name: "accId" },
-        ]
-      },
-    ]
+    tableName: 'acc_data',
+    timestamps: false
   });
 };

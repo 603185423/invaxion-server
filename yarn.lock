@@ -926,6 +926,11 @@ keyv@^3.0.0:
   dependencies:
     json-buffer "3.0.0"
 
+knuth-shuffle@^1.0.8:
+  version "1.0.8"
+  resolved "https://registry.npm.taobao.org/knuth-shuffle/download/knuth-shuffle-1.0.8.tgz#929a467b0efd8d297bdcf318ca988a9f1037f80d"
+  integrity sha1-kppGew79jSl73PMYypiKnxA3+A0=
+
 latest-version@^5.0.0:
   version "5.1.0"
   resolved "https://registry.npm.taobao.org/latest-version/download/latest-version-5.1.0.tgz#119dfe908fe38d15dfa43ecd13fa12ec8832face"

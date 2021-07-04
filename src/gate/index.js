@@ -7,6 +7,8 @@ const Sequelize = require('../sql/mysqlConfig');
 const models = require('../sql/models/init-models')(Sequelize);
 const initSongModels = require('../sql/initSongModels');
 const {Op} = require("sequelize");
+const arcadeList = require("./arcadeList");
+const shuffle = require('knuth-shuffle').knuthShuffle;
 
 function songModels(songId) {
     return initSongModels(Sequelize, songId);
@@ -22,8 +24,8 @@ const modeLink = {1: '4k', 2: '6k', 3: '8k',}
 const difficultyLink = {1: 'ez', 2: 'nm', 3: 'hd',}
 
 function getSuf(mode, difficulty) {
-    return '_' + modeLink[mode] + difficultyLink[difficulty]
-};
+    return '_' + modeLink[mode] + difficultyLink[difficulty];
+}
 
 function addSuf(suf, ...strs) {
     let res = [];
@@ -50,7 +52,7 @@ handlers.set(1005, async (req, res, now, sessionid) => {  //gate
     let token = req.data["token"];
     let acc = await models.account.findOne({where: {accId: accId}});
     if (acc === null || acc.token !== token) return;
-    let [chara, created] = await models.character.findOrCreate( {where: {accId: accId}, defaults: {accId: accId}});
+    let [chara, created] = await models.character.findOrCreate({where: {accId: accId}, defaults: {accId: accId}});
     models.character.update({sessionid: sessionid}, {where: {accId: accId}});
     let userList = [{charId: chara.charId, accStates: 0}];
     if (chara.charId === "0000000000") userList = [];
@@ -245,11 +247,12 @@ handlers.set(8, async (req, res) => {
     else if (rankType === 5) sqlReqStr = "total4KScore";
     else if (rankType === 6) sqlReqStr = "total6KScore";
     else if (rankType === 7) sqlReqStr = "total8KScore";
+    else if (rankType === 8) sqlReqStr = "totalArcadeScore";
     else return;
     let whe = {};
-    whe[sqlReqStr]={[Op.gt]: 0};
+    whe[sqlReqStr] = {[Op.gt]: 0};
     let scores = await models.character.findAll({
-        attributes: [['name','charName'], 'headId', [sqlReqStr, 'score'], 'country', 'titleId'],
+        attributes: [['name', 'charName'], 'headId', [sqlReqStr, 'score'], 'country', 'titleId'],
         where: whe,
         order: [[sqlReqStr, 'DESC']],
         limit: rankListLength
@@ -265,7 +268,7 @@ handlers.set(8, async (req, res) => {
             titleId: v.dataValues.titleId,
         });
     });
-    if (scoreList.length === 0)scoreList.push({
+    if (scoreList.length === 0) scoreList.push({
             rank: 1,
             charName: "暂时无人游玩",
             score: 1,
@@ -301,7 +304,7 @@ handlers.set(30, (req, res, now, sessionid) => {
         paraCmd: 31,
         data: {id: req.data["id"]}
     });
-    models.character.update({headId: req.data["id"]},{where: {sessionid: sessionid}});
+    models.character.update({headId: req.data["id"]}, {where: {sessionid: sessionid}});
 });
 
 handlers.set(32, (req, res, now, sessionid) => {
@@ -311,7 +314,7 @@ handlers.set(32, (req, res, now, sessionid) => {
         paraCmd: 33,
         data: {id: req.data["id"]}
     });
-    models.character.update({selectCharId: req.data["id"]},{where: {sessionid: sessionid}});
+    models.character.update({selectCharId: req.data["id"]}, {where: {sessionid: sessionid}});
 });
 
 handlers.set(34, (req, res, now, sessionid) => {
@@ -321,7 +324,7 @@ handlers.set(34, (req, res, now, sessionid) => {
         paraCmd: 35,
         data: {id: req.data["id"]}
     });
-    models.character.update({selectThemeId: req.data["id"]},{where: {sessionid: sessionid}});
+    models.character.update({selectThemeId: req.data["id"]}, {where: {sessionid: sessionid}});
 });
 
 handlers.set(36, (req, res) => {
@@ -362,7 +365,7 @@ handlers.set(100, (req, res) => {
     });
 });
 
-handlers.set(10, async (req, res, sessionid) => {
+handlers.set(10, async (req, res, now, sessionid) => {
     logger.info('收藏歌曲');
     res.write({
         mainCmd: 5,
@@ -372,12 +375,60 @@ handlers.set(10, async (req, res, sessionid) => {
             isFavorite: req.data['isFavorite']
         }
     });
-    let chara = await models.character.findOne({attributes: ['charId']},{where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({attributes: ['charId']}, {where: {sessionid: sessionid}});
     let charId = chara.charId;
     let upd = {};
     upd[req.data['songId']] = req.data['isFavorite'];
     models.favorite.update(upd, {where: {charId: charId}});
 });
+
+handlers.set(87, (req, res) => {
+    logger.info('街机模式');
+    let stageList = [];
+    for (let i = 0; i < 3; i++) {
+        shuffle(arcadeList[i]);
+        let songList = [];
+        for (let j = 0; j < 8; j++) {
+            songList.push(arcadeList[i][j]);
+        }
+        stageList.push({
+            stageId: i + 1,
+            songList: songList,
+        })
+    }
+    res.write({
+        mainCmd: 5,
+        paraCmd: 88,
+        data: {
+            stageList: stageList
+        }
+    });
+});
+
+handlers.set(89, async (req, res, now, sessionid) => {
+    logger.info('街机模式结束');
+    res.write({
+        mainCmd: 5,
+        paraCmd: 90,
+        data: {}
+    });
+    let totalArcadeScore = req.data["finishList"][0]["finishData"]["playData"]["score"] +
+        req.data["finishList"][1]["finishData"]["playData"]["score"] +
+        req.data["finishList"][2]["finishData"]["playData"]["score"];
+    let chara = await models.character.findOne({attributes: ['charId', 'totalArcadeScore']}, {where: {sessionid: sessionid}});
+    if (chara.totalArcadeScore < totalArcadeScore) {
+        models.character.update({totalArcadeScore: totalArcadeScore}, {where: {sessionid: sessionid}});
+        await models.arcade.findOrCreate({where: {charId: chara.charId}});
+        models.arcade.update({
+            finishData1: req.data["finishList"][0]["finishData"],
+            finishData2: req.data["finishList"][1]["finishData"],
+            finishData3: req.data["finishList"][2]["finishData"],
+        }, {
+            where: {charId: chara.charId}
+        });
+    }
+});
+
 
 async function dispatch(req, res, now, sessionid) {
     const handler = handlers.get((req.mainCmd === 1 || req.mainCmd === 3) ? req.paraCmd + 1000 : req.paraCmd);

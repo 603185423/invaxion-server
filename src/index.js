@@ -15,6 +15,7 @@ async function initModelTable(){
     models.favorite.sync();
     models.friend.sync();
     models.gate.sync();
+    models.arcade.sync();
 }
 
 
