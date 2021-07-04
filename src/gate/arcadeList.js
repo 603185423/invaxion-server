@@ -11,9 +11,9 @@ for (let songId in songList) {
         if (key.slice(-4)==='diff'){
             let keyNum = keyList[key.slice(3,4)];
             let diffNum = diffList[key.slice(5,-5)];
-            if (songList[songId][key]>=1 && songList[songId][key]<=9)arcadeList[0].push({songId: songId, difficulty: diffNum, mode: keyNum, info: songList[songId][key]});
-            if (songList[songId][key]>=5 && songList[songId][key]<=13)arcadeList[1].push({songId: songId, difficulty: diffNum, mode: keyNum, info: songList[songId][key]});
-            if (songList[songId][key]>=9 && songList[songId][key]<=17)arcadeList[2].push({songId: songId, difficulty: diffNum, mode: keyNum, info: songList[songId][key]});
+            if (songList[songId][key]>=1 && songList[songId][key]<=9)arcadeList[0].push({songId: songId, difficulty: diffNum, mode: keyNum});
+            if (songList[songId][key]>=5 && songList[songId][key]<=13)arcadeList[1].push({songId: songId, difficulty: diffNum, mode: keyNum});
+            if (songList[songId][key]>=9 && songList[songId][key]<=17)arcadeList[2].push({songId: songId, difficulty: diffNum, mode: keyNum});
         }
     }
 }
