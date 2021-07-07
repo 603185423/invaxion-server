@@ -16,6 +16,9 @@ async function initModelTable(){
     models.friend.sync();
     models.gate.sync();
     models.arcade.sync();
+    models.prerank.sync();
+    models.prerank4k.sync();
+    models.prerank6k.sync();
 }
 
 

@@ -31,7 +31,7 @@ class Encoder extends stream.Transform {
         const buff = Buffer.alloc(pkgLen);
         buff.writeInt32LE(pkgLen - 4, 0);
         buff.writeInt8(msg.mainCmd, 4);
-        buff.writeInt8(msg.paraCmd, 5);
+        buff.writeUInt8(msg.paraCmd, 5);
         buff.writeInt16LE(dataLen, 6);
         data.copy(buff, preloadLen)
 

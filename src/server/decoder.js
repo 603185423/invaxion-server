@@ -19,7 +19,7 @@ class Decoder extends stream.Transform {
         const pub = {};
         pub.pkgLen = msg.readInt32LE(0);
         pub.mainCmd = msg.readInt8(4);
-        pub.paraCmd = msg.readInt8(5);
+        pub.paraCmd = msg.readUInt8(5);
         pub.dataLen = msg.readInt16LE(6);
         pub.data = msg.slice(8, 8 + pub.dataLen);
 

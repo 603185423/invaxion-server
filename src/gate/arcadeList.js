@@ -8,7 +8,7 @@ const diffList = {'easy':0,'normal':1,'hard':2};
 let songList = JSON.parse(data);
 for (let songId in songList) {
     for (let key in songList[songId]){
-        if (key === 'songType' && songList[songId][key] === 0) continue;
+        if (key === 'songType' && songList[songId][key] === 0) break;
         if (key.slice(-4)==='diff'){
             if (songList[songId].hasOwnProperty(key.slice(0,-4) + 'note') && songList[songId][key.slice(0,-4) + 'note'] === 0)continue;
             else if (!songList[songId].hasOwnProperty(key.slice(0,-4) + 'note'))continue;
