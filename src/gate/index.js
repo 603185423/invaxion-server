@@ -1,5 +1,6 @@
 const log4js = require('log4js');
 const Ntf_CharacterFullData = require('./tmp-data/Ntf_CharacterFullData.js');
+const Ret_BattleFieldInfo = require('./tmp-data/Ret_BattleFieldInfo.js');
 const Ret_ShopInfo = require('./tmp-data/Ret_ShopInfo.js');
 const Ret_Event_Info = require('./tmp-data/Ret_Event_Info.js');
 const sqlite3 = require("sqlite3").verbose();
@@ -238,9 +239,6 @@ handlers.set(6, async (req, res) => {
 
 handlers.set(8, async (req, res) => {
     logger.info('排行榜');
-    let db = new sqlite3.Database(dbname, function (err) {
-        if (err) throw err;
-    });
     let rankType = req.data["type"];
     let sqlReqStr = "", sqlReqStr2 = "";
     let scoreList = [];
@@ -391,7 +389,7 @@ handlers.set(10, async (req, res, now, sessionid) => {
             isFavorite: req.data['isFavorite']
         }
     });
-    let chara = await models.character.findOne({attributes: ['charId']}, {where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({attributes: ['charId'], where: {sessionid: sessionid}});
     let charId = chara.charId;
     let upd = {};
     upd[req.data['songId']] = req.data['isFavorite'];
@@ -431,7 +429,10 @@ handlers.set(89, async (req, res, now, sessionid) => {
     let totalArcadeScore = req.data["finishList"][0]["finishData"]["playData"]["score"] +
         req.data["finishList"][1]["finishData"]["playData"]["score"] +
         req.data["finishList"][2]["finishData"]["playData"]["score"];
-    let chara = await models.character.findOne({attributes: ['charId', 'totalArcadeScore']}, {where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({
+        attributes: ['charId', 'totalArcadeScore'],
+        where: {sessionid: sessionid}
+    });
     if (chara.totalArcadeScore < totalArcadeScore) {
         models.character.update({totalArcadeScore: totalArcadeScore}, {where: {sessionid: sessionid}});
         await models.arcade.findOrCreate({where: {charId: chara.charId}});
@@ -448,7 +449,10 @@ handlers.set(89, async (req, res, now, sessionid) => {
 handlers.set(160, async (req, res, now, sessionid) => {
     logger.info('段位模式');
     let data = {preRank: {list: [], curRank: 0}, preRank4K: {list: [], curRank: 0}, preRank6K: {list: [], curRank: 0}};
-    let chara = await models.character.findOne({attributes: ['charId', 'preRank', 'preRank4k', 'preRank6k']}, {where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({
+        attributes: ['charId', 'preRank', 'preRank4k', 'preRank6k'],
+        where: {sessionid: sessionid}
+    });
     let [preRank,] = await models.prerank.findOrCreate({where: {charId: chara.charId}});
     let [preRank4k,] = await models.prerank4k.findOrCreate({where: {charId: chara.charId}});
     let [preRank6k,] = await models.prerank6k.findOrCreate({where: {charId: chara.charId}});
@@ -492,17 +496,20 @@ handlers.set(162, (req, res, now, sessionid) => {
 handlers.set(164, async (req, res, now, sessionid) => {
     logger.info('段位结束');
     const levelIdList = [101, 102, 103, 104, 201, 202, 203, 204, 301, 302, 303];
-    let chara = await models.character.findOne({attributes: ['charId']}, {where: {sessionid: sessionid}})
+    let chara = await models.character.findOne({attributes: ['charId'], where: {sessionid: sessionid}})
     let curPRId = req.data['data']['levelId'];
     let nextPRId = 0;
     let data = {newRank: 0, type: req.data['type']};
-    let preRankModelsLink = {1: models.prerank, 2: models.prerank4k, 3: models.prerank6k};
+    const preRankModelsLink = {1: models.prerank, 2: models.prerank4k, 3: models.prerank6k};
     let preRankColumnLink = {1: 'preRank', 2: 'preRank4k', 3: 'preRank6k'};
     if (curPRId !== 303) {
         for (let i in levelIdList) {
             if (levelIdList[i] === curPRId) {
                 nextPRId = levelIdList[parseInt(i) + 1];
-                let charPR = await preRankModelsLink[req.data['type']].findOne({attributes: [['unLocked_' + nextPRId, 'unLocked']]}, {where: {charId: chara.charId}});
+                let charPR = await preRankModelsLink[req.data['type']].findOne({
+                    attributes: [['unLocked_' + nextPRId, 'unLocked']],
+                    where: {charId: chara.charId}
+                });
                 if (!charPR.unLocked) {
                     data['openData'] = {
                         levelId: nextPRId,
@@ -545,6 +552,63 @@ handlers.set(164, async (req, res, now, sessionid) => {
         upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
         models.character.update(upd2, {where: {charId: chara.charId}})
     }
+});
+
+handlers.set(42, (req, res) => {
+    logger.info('领地战');
+    res.write({
+        mainCmd: 5,
+        paraCmd: 43,
+        data: Ret_BattleFieldInfo
+    });
+});
+
+handlers.set(166, async (req, res, now, sessionid) => {
+    logger.info('段位模式排行榜');
+    const preRankModelsLink = {1: models.prerank, 2: models.prerank4k, 3: models.prerank6k};
+    let preRankId = req.data['levelId'];
+    let type = req.data['type'];
+    let whe = {};
+    whe['score_' + preRankId] = {[Op.gt]: 0};
+    let ord = [['score_' + preRankId, 'DESC'], ['percent_' + preRankId, 'DESC']];
+    let scoreList = await preRankModelsLink[type].findAll({
+        attributes: [['score_' + preRankId, 'score'], ['percent_' + preRankId, 'percent']],
+        where: whe,
+        include: [{
+            association: preRankModelsLink[type].belongsTo(models.character, {
+                foreignKey: 'charId',
+                targetKey: 'charId'
+            }),
+            attributes: ['charId', ['name', 'charName'], 'headId', 'country']
+        }],
+        order: ord,
+        limit: rankListLength,
+        raw: false
+    })
+    let rankList = [];
+    let noPlayer1 = {charId: "500000001", rank: 1, charName: "暂时无人游玩", score: 1, headId: 10010, country: 1, percent: 1};
+    let noPlayer2 = {charId: "500000002", rank: 2, charName: "快来争当第一", score: 2, headId: 10010, country: 1, percent: 2};
+    scoreList.forEach(function (v, i) {
+        rankList.push({
+            charId: v.dataValues.character.dataValues.charId,
+            rank: i + 1,
+            charName: v.dataValues.character.dataValues.charName,
+            score: v.dataValues.score,
+            headId: v.dataValues.character.dataValues.headId,
+            country: v.dataValues.character.dataValues.country,
+            percent: v.dataValues.percent,
+        });
+    });
+    if (rankList.length === 0) rankList.push(noPlayer1, noPlayer2);
+    res.write({
+        mainCmd: 5,
+        paraCmd: 167,
+        data: {
+            list: rankList,
+            levelId: preRankId,
+            type: type
+        }
+    });
 });
 
 async function dispatch(req, res, now, sessionid) {
