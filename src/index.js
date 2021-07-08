@@ -7,12 +7,13 @@ const login = require('./login');
 const gate = require('./gate');
 const server = require('./server');
 const initSongTables = require('./sql/initSongTables');
+const initFavoriteTable = require('./sql/initFavoriteTable');
 const Sequelize = require('./sql/mysqlConfig');
 const models = require('./sql/models/init-models')(Sequelize);
 async function initModelTable(){
     models.account.sync();
     models.character.sync();
-    models.favorite.sync();
+    await models.favorite.sync();
     models.friend.sync();
     models.gate.sync();
     models.arcade.sync();
@@ -60,7 +61,8 @@ const logger = log4js.getLogger('app:index');
     await proto.load();
     console.log(123);
     initSongTables();
-    initModelTable();
+    await initModelTable();
+    initFavoriteTable();
     net.createServer(server(login)).listen(60311, '0.0.0.0');
     net.createServer(server(gate)).listen(20021, '0.0.0.0');
 

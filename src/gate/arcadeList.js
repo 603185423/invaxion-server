@@ -1,7 +1,7 @@
 const arcadeList = [[], [], []];
 const fs = require('fs');
 
-let data = fs.readFileSync('../tools/MusicInfoList.txt');
+let data = fs.readFileSync('../tools/arcadeinfolist.txt');
 const keyList = {4:1,6:2,8:3};
 const diffList = {'easy':0,'normal':1,'hard':2};
 
