@@ -139,7 +139,7 @@ handlers.set(4, async (req, res, now, sessionid) => {
     await songModels(songId).sync();
     let [songInfoOld,] = await songModels(songId).findOrCreate({attributes: att, where: {charId: charId}});
     let upd = {};
-    if (songInfoOld.score > songInfo.score) {
+    if (songInfoOld.dataValues.score > songInfo.score) {
         songInfo = songInfoOld.dataValues;
         upd['playCount' + suf] = ++songInfo.playCount;
     } else {
@@ -160,15 +160,15 @@ handlers.set(4, async (req, res, now, sessionid) => {
         playCount: songInfo["playCount"],
         isAllMax: songInfo["isAllMax"],
     }
-    res.write({
-        mainCmd: 5,
-        paraCmd: 5,
-        data: {
-            songInfo: songInfo,
-            settleData: {changeList: [{type: 9, count: 450, id: 0}], expData: {level: 30, curExp: 0, maxExp: 0}},
-            newRank: 0
-        }
-    });
+    // res.write({
+    //     mainCmd: 5,
+    //     paraCmd: 5,
+    //     data: {
+    //         songInfo: songInfo,
+    //         settleData: {changeList: [{type: 9, count: 450, id: 0}], expData: {level: 30, curExp: 0, maxExp: 0}},
+    //         newRank: 0
+    //     }
+    // });
 
 });
 
@@ -178,6 +178,7 @@ handlers.set(6, async (req, res) => {
     const deltaTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
     let suf = getSuf(req.data["mode"], req.data["difficulty"]);
     if (req.data.hasOwnProperty("isWeek")) weekly['time' + suf] = {[Op.gt]: deltaTime};
+    weekly['score' + suf] = {[Op.gt]: 0};
     await songModels(req.data["songId"]).sync();
     let att = addSuf(suf, "score");
     att.push('charId');
