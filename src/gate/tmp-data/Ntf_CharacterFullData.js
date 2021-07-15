@@ -163,211 +163,211 @@ module.exports = async function (accId = 1, charId = 1, charName = "6031", headI
                 "list": [
                     {
                         "charId": 20060,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40090,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 1
+                        "playCount": 0
                     },
                     {
                         "charId": 40130,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 50010,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40010,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 422
+                        "playCount": 0
                     },
                     {
                         "charId": 40040,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 7
+                        "playCount": 0
                     },
                     {
                         "charId": 10050,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 660
+                        "playCount": 0
                     },
                     {
                         "charId": 10010,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 10
+                        "playCount": 0
                     },
                     {
                         "charId": 10020,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 10
+                        "playCount": 0
                     },
                     {
                         "charId": 20040,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 76
+                        "playCount": 0
                     },
                     {
                         "charId": 40220,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 10040,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 2
+                        "playCount": 0
                     },
                     {
                         "charId": 20050,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 30070,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 20020,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 20090,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40320,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 20030,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 1
+                        "playCount": 0
                     },
                     {
                         "charId": 10030,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 6
                     },
                     {
                         "charId": 30050,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40150,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40260,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 30040,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 171
+                        "playCount": 0
                     },
                     {
                         "charId": 40330,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
-                        "playCount": 65
+                        "playCount": 0
                     },
                     {
                         "charId": 40120,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 20170,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 10060,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 30090,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 40250,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 30100,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId": 30110,
-                        "level": 1,
+                        "level": 30,
                         "exp": 0,
                         "playCount": 0
                     },
                     {
                         "charId":1006010,
-                        "level":1,
+                        "level":30,
                         "exp":0,
                         "playCount":0
                     },
                     {
                         "charId":50050,
-                        "level":1,
+                        "level":30,
                         "exp":0,
                         "playCount":0
                     },
                     {
                         "charId":3004010,
-                        "level":1,
+                        "level":30,
                         "exp":0,
                         "playCount":0
                     },
                     {
                         "charId":30060,
-                        "level":1,
+                        "level":30,
                         "exp":0,
                         "playCount":0
                     }

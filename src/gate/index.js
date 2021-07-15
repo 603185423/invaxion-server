@@ -160,15 +160,15 @@ handlers.set(4, async (req, res, now, sessionid) => {
         playCount: songInfo["playCount"],
         isAllMax: songInfo["isAllMax"],
     }
-    // res.write({
-    //     mainCmd: 5,
-    //     paraCmd: 5,
-    //     data: {
-    //         songInfo: songInfo,
-    //         settleData: {changeList: [{type: 9, count: 450, id: 0}], expData: {level: 30, curExp: 0, maxExp: 0}},
-    //         newRank: 0
-    //     }
-    // });
+    res.write({
+        mainCmd: 5,
+        paraCmd: 5,
+        data: {
+            songInfo: songInfo,
+            settleData: {changeList: [{type: 9, count: 450, id: 0}], expData: {level: 30, curExp: 0, maxExp: 0}},
+            newRank: 0
+        }
+    });
 
 });
 
