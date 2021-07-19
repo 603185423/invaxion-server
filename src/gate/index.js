@@ -198,7 +198,6 @@ handlers.set(6, async (req, res) => {
     })
     let rankList = [];
     rank.forEach(function (v, i) {
-        //if (!(v.hasOwnProperty("dataValues") && v.dataValues.character.hasOwnProperty("dataValues"))) return;
         rankList.push({
             rank: i + 1,
             charName: v.dataValues.character.dataValues.charName,
@@ -497,12 +496,12 @@ handlers.set(162, (req, res, now, sessionid) => {
 handlers.set(164, async (req, res, now, sessionid) => {
     logger.info('段位结束');
     const levelIdList = [101, 102, 103, 104, 201, 202, 203, 204, 301, 302, 303];
-    let chara = await models.character.findOne({attributes: ['charId'], where: {sessionid: sessionid}})
     let curPRId = req.data['data']['levelId'];
     let nextPRId = 0;
     let data = {newRank: 0, type: req.data['type']};
     const preRankModelsLink = {1: models.prerank, 2: models.prerank4k, 3: models.prerank6k};
     let preRankColumnLink = {1: 'preRank', 2: 'preRank4k', 3: 'preRank6k'};
+    let chara = await models.character.findOne({attributes: ['charId', [preRankColumnLink[req.data['type']], 'pr']], where: {sessionid: sessionid}});
     if (curPRId !== 303) {
         for (let i in levelIdList) {
             if (levelIdList[i] === curPRId) {
@@ -511,7 +510,7 @@ handlers.set(164, async (req, res, now, sessionid) => {
                     attributes: [['unLocked_' + nextPRId, 'unLocked']],
                     where: {charId: chara.charId}
                 });
-                if (!charPR.unLocked) {
+                if (!charPR.dataValues.unLocked) {
                     data['openData'] = {
                         levelId: nextPRId,
                         curState: 1,
@@ -533,6 +532,7 @@ handlers.set(164, async (req, res, now, sessionid) => {
         let upd2 = {};
         upd2[preRankColumnLink[req.data['type']]] = curPRId;
         models.character.update(upd2, {where: {charId: chara.charId}});
+        chara.dataValues.pr = curPRId;
     }
     res.write({
         mainCmd: 5,
@@ -549,9 +549,12 @@ handlers.set(164, async (req, res, now, sessionid) => {
         upd1['percent_' + curPRId] = req.data['data']['percent'];
         upd1['score_' + curPRId] = req.data['data']['score'];
         preRankModelsLink[req.data['type']].update(upd1, {where: {charId: chara.charId}});
-        let upd2 = {};
-        upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
-        models.character.update(upd2, {where: {charId: chara.charId}})
+        if (chara.dataValues.pr===curPRId){
+            let upd2 = {};
+            upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
+            models.character.update(upd2, {where: {charId: chara.charId}});
+        }
+
     }
 });
 
