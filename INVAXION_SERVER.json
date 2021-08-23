@@ -1,19 +1,21 @@
 {
-  "apps": [
-    {
-      "name": "INVAXION_SERVER",
-      "script": "./src/index.js",
-      "instances": 0,
-      "instance_var": "INSTANCE_ID",
-      "cwd": "./",
-      "error_file": "./logs/app-err.log",
-      "out_file": "./logs/app-out.log",
-      "merge_logs": true,
-      "log_date_format": "YYYY-MM-DD HH:mm:ss",
-      "autorestart": true,
-      "env": {
-        "TZ": "Asia/Shanghai"
-      }
-    }
-  ]
+ "apps": [
+  {
+   "name": "invaxion",
+   "script": "./src/index.js",
+   "log_date_format": "YYYY-MM-DD HH:mm:ss",
+   "log_file": "./logs/invaxion.log",
+   "error_file": "./logs/invaxion-err.log",
+   "out_file": "./logs/invaxion-out.log",
+   "pid_file": "./pids/invaxion.pid",
+   "instances": 1,
+   "min_uptime": "200s",
+   "watch": false,
+   "merge_logs": true,
+   "exec_interpreter": "node",
+   "exec_mode": "fork",
+   "autorestart": true,
+   "vizion": false
+  }
+ ]
 }
