@@ -192,7 +192,7 @@ handlers.set(6, async (req, res) => {
             }),
             attributes: [['name', 'charName'], 'headId', 'country', 'titleId']
         }],
-        order: [['score' + suf, 'DESC']],
+        order: [['score' + suf, 'DESC'], ['time' + suf]],
         limit: rankListLength,
         raw: false
     })
