@@ -192,7 +192,7 @@ handlers.set(6, async (req, res) => {
             }),
             attributes: [['name', 'charName'], 'headId', 'country', 'titleId']
         }],
-        order: [['score' + suf, 'DESC']],
+        order: [['score' + suf, 'DESC'], ['time' + suf]],
         limit: rankListLength,
         raw: false
     })
@@ -501,7 +501,11 @@ handlers.set(164, async (req, res, now, sessionid) => {
     let data = {newRank: 0, type: req.data['type']};
     const preRankModelsLink = {1: models.prerank, 2: models.prerank4k, 3: models.prerank6k};
     let preRankColumnLink = {1: 'preRank', 2: 'preRank4k', 3: 'preRank6k'};
-    let chara = await models.character.findOne({attributes: ['charId', [preRankColumnLink[req.data['type']], 'pr']], where: {sessionid: sessionid}});
+    let chara = await models.character.findOne({
+        attributes: ['charId', [preRankColumnLink[req.data['type']], 'pr'], [preRankColumnLink[req.data['type']] + 'Param', 'prParam']],
+        where: {sessionid: sessionid}
+    });
+    //判断是否需要解锁下一关
     if (curPRId !== 303) {
         for (let i in levelIdList) {
             if (levelIdList[i] === curPRId) {
@@ -520,25 +524,17 @@ handlers.set(164, async (req, res, now, sessionid) => {
                     let upd1 = {};
                     upd1['unLocked_' + nextPRId] = true;
                     preRankModelsLink[req.data['type']].update(upd1, {where: {charId: chara.charId}});
-                    let upd2 = {};
-                    upd2[preRankColumnLink[req.data['type']]] = curPRId;
-                    upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
-                    models.character.update(upd2, {where: {charId: chara.charId}});
                 }
                 break;
             }
         }
-    } else {
-        let upd2 = {};
-        upd2[preRankColumnLink[req.data['type']]] = curPRId;
-        models.character.update(upd2, {where: {charId: chara.charId}});
-        chara.dataValues.pr = curPRId;
     }
     res.write({
         mainCmd: 5,
         paraCmd: 165,
         data: data
     });
+    //记录成绩部分
     let pr = await preRankModelsLink[req.data['type']].findOne({
         attributes: [['percent_' + curPRId, 'percent']],
         where: {charId: chara.charId}
@@ -549,12 +545,21 @@ handlers.set(164, async (req, res, now, sessionid) => {
         upd1['percent_' + curPRId] = req.data['data']['percent'];
         upd1['score_' + curPRId] = req.data['data']['score'];
         preRankModelsLink[req.data['type']].update(upd1, {where: {charId: chara.charId}});
-        if (chara.dataValues.pr===curPRId){
+
+
+    }
+    //更改排行榜部分
+    if (chara.dataValues.pr < curPRId) {
+        let upd2 = {};
+        upd2[preRankColumnLink[req.data['type']]] = curPRId;
+        upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
+        models.character.update(upd2, {where: {charId: chara.charId}});
+    } else if (chara.dataValues.pr === curPRId) {
+        if (chara.dataValues.prParam < req.data['data']['percent']) {
             let upd2 = {};
             upd2[preRankColumnLink[req.data['type']] + 'Param'] = req.data['data']['percent'];
             models.character.update(upd2, {where: {charId: chara.charId}});
         }
-
     }
 });
 
