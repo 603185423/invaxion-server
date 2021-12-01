@@ -199,17 +199,17 @@ module.exports = function(sequelize, DataTypes) {
     unLocked_202: {
       type: DataTypes.TINYINT,
       allowNull: true,
-      defaultValue: 1
+      defaultValue: 0
     },
     unLocked_203: {
       type: DataTypes.TINYINT,
       allowNull: true,
-      defaultValue: 1
+      defaultValue: 0
     },
     unLocked_204: {
       type: DataTypes.TINYINT,
       allowNull: true,
-      defaultValue: 1
+      defaultValue: 0
     },
     unLocked_301: {
       type: DataTypes.TINYINT,
