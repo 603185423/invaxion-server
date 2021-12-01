@@ -10,7 +10,7 @@ const initSongTables = require('./sql/initSongTables');
 const initFavoriteTable = require('./sql/initFavoriteTable');
 const Sequelize = require('./sql/mysqlConfig');
 const models = require('./sql/models/init-models')(Sequelize);
-const generateSongList = require('../tools/generateSongList');
+//const generateSongList = require('../tools/generateSongList');
 async function initModelTable(){
     models.account.sync();
     models.character.sync();
